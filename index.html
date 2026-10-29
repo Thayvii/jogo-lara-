@@ -1,0 +1,118 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>O Caminho Até Você</title>
+<style>
+:root{color-scheme:dark;--bg:#120a1f;--fg:#f3e9ff;--ac:#e8b84a;--pn:#2a1745;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font:14px system-ui,sans-serif;user-select:none;-webkit-user-select:none;touch-action:manipulation;display:flex;flex-direction:column;align-items:center}
+#hud{width:min(100vw,420px);display:flex;justify-content:space-between;align-items:center;padding:6px 10px;box-sizing:border-box;font-weight:600}
+#wrap{position:relative}
+canvas{display:block;image-rendering:pixelated;width:min(100vw,calc((100dvh - 250px)*11/14));aspect-ratio:11/14;background:#000}
+#dl{position:absolute;left:4px;right:4px;bottom:4px;background:#1b0f2ee8;border:2px solid var(--ac);border-radius:8px;padding:8px 10px;display:none;line-height:1.35}
+#dl b{color:var(--ac)}
+#ov{position:absolute;inset:0;background:#120a1ff5;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;text-align:center;overflow:auto}
+#ov h1{margin:0;color:var(--ac);font-size:26px}
+button{font:inherit;color:var(--fg);background:var(--pn);border:2px solid var(--ac);border-radius:10px;padding:8px 12px}
+#ctl{display:flex;justify-content:space-between;align-items:center;width:min(100vw,420px);padding:8px 16px;box-sizing:border-box}
+#pad{display:grid;grid-template:repeat(2,56px)/repeat(3,56px);gap:5px}
+#pad button{padding:0;font-size:22px;touch-action:none}
+#A{width:84px;height:84px;border-radius:50%;font-size:26px;font-weight:700;background:#6a2fa0}
+</style></head><body>
+<div id="hud"><span id="ti"></span><span><span id="oc"></span> <button id="mp" style="padding:2px 8px">🗺</button> <button id="bag" style="padding:2px 8px">🎒</button></span></div>
+<div id="wrap"><canvas id="c"></canvas><div id="dl"></div><div id="ov"></div></div>
+<div id="ctl"><div id="pad"><button data-d="1" style="grid-area:1/2">▲</button><button data-d="2" style="grid-area:2/1">◀</button><button data-d="0" style="grid-area:2/2">▼</button><button data-d="3" style="grid-area:2/3">▶</button></div><button id="A">A</button></div>
+<script>
+const $=i=>document.getElementById(i),cv=$('c');let x=cv.getContext('2d');cv.width=176;cv.height=224;
+const W=11,H=14,T=16,SOL='#hdbwx',DX=[0,0,-1,1],DY=[1,-1,0,0];
+const E="#.........#",B="###########";
+const has=n=>inv.includes(n);
+const M=[
+{n:'Academia',t:'1. Academia — Cap. I: A mensagem',in:1,c:['#7a5a3e','#6c4f36','#3a2650'],g:["#####D#####","#bbb...bbb#",E,"#..d...d..#",E,E,E,E,E,E,E,E,E,B],o:[{k:'let',x:3,y:3,id:'letter'},{k:'itm',x:8,y:6,id:'itm',n:'Poção de café',m:"Uma poção de café! +10 de energia para jogar RPG até tarde."}],req:()=>f.g0,msg:"A porta está trancada. Talvez a carta misteriosa explique algo…"},
+{n:'Vila das Flores',t:'2. Vila das Flores — Cap. II',c:['#4f9a4a','#478f43','#1d4a2a'],g:["#####D#####","#hh.....hh#","#hh.....hh#",E,"#..hh.hh..#","#..hh.hh..#",E,E,"#.ww...ww.#","#.ww...ww.#",E,E,E,B],o:[{k:'orq',x:1,y:6},{k:'orq',x:9,y:6},{k:'orq',x:5,y:10},{k:'npc',x:4,y:3,id:'flo',p:'FLO'},{k:'npc',x:7,y:7,id:'kid',p:'KID'},{k:'cat',x:5,y:1,id:'c1'}],req:()=>f.g1,msg:"Darcy ainda bloqueia a passagem."},
+{n:'Floresta Encantada',t:'3. Floresta Encantada — Cap. III: O jardim que não aparece no mapa',c:['#2c5a4a','#285243','#102a22'],g:["#####D#####",E,E,E,E,E,"#xxxxxxxxx#",E,E,E,E,E,E,B],o:[{k:'orq',x:1,y:9,r:1},{k:'orq',x:9,y:10,r:1},{k:'cat',x:5,y:7,id:'c2'},{k:'itm',x:8,y:2,id:'itm',n:'Chave antiga',m:"Entre as raízes brilha uma chave antiga!"}],req:()=>has('Chave antiga'),msg:"Uma porta com cadeado antigo. A chave deve estar ao norte, depois dos arbustos."},
+{n:'Taverna do D20',t:'4. Taverna do D20 — minigames e pistas',in:1,c:['#6a4a30','#5e422b','#2e1d14'],g:["#####D#####","#bbb...bbb#",E,"#.dd...dd.#",E,E,E,E,E,E,E,E,E,B],o:[{k:'npc',x:5,y:2,id:'mes',p:'KID'},{k:'itm',x:1,y:5,id:'itm',n:'Livro de RPG',m:"Um livro de RPG antigo, cheio de anotações nas margens."},{k:'itm',x:9,y:5,id:'itm',n:'Playlist secreta',m:"A vitrola toca uma playlist secreta. Você guarda o disco!"}],req:()=>f.d20,msg:"O mestre da taverna não deixa ninguém passar sem rolar um D20!"},
+{n:'Refúgio Secreto',t:'5. Refúgio Secreto — Cap. IV: A frequência perdida (SDOL)',in:1,c:['#3a3050','#342a48','#1a1428'],g:["#####D#####","#bb.....bb#",E,E,E,E,E,E,E,E,E,E,E,B],o:[{k:'rad',x:3,y:1,id:'rad'},{k:'chest',x:7,y:2,id:'chest'},{k:'stone',x:1,y:5,s:'☾'},{k:'stone',x:9,y:6,s:'✦'},{k:'stone',x:5,y:9,s:'◆'},{k:'cat',x:9,y:12,id:'c3'}],req:()=>f.chest,msg:"A porta só abre depois que você resolver o mistério do refúgio."},
+{n:'Jardim Final',t:'6. Jardim Final — Cap. V e VI: O encontro',c:['#5a9a50','#52904a','#1d4a2a'],g:[B,"#wwwwwwwww#","#wwwwwwwww#",E,E,E,E,E,E,E,E,E,E,B],o:[{k:'you',x:5,y:4,id:'you'},{k:'cat',x:7,y:5,id:'c4'}],req:()=>0,msg:""}
+];
+const PL={LARA:{h:'#c4622d',e:'#5a3520',c:'#2f7f8f',t:'#e8b84a'},YOU:{h:'#9a7a45',h2:'#111',e:'#2e9e5b',c:'#7a3fb0',t:'#e8b84a',lily:1},FLO:{h:'#d9a0c0',e:'#333',c:'#4a9a5a'},KID:{h:'#222',e:'#222',c:'#d0a030'}};
+let mi=0,g,objs,px,py,dir=1,f={orq:0,st:0},inv=[],busy=1,q=[],cb=null;
+function R(a,b,w,h,c){x.fillStyle=c;x.fillRect(a,b,w,h)}
+function ch(X,Y,p,d){const r=(a,b,w,h,c)=>R(X+a,Y+b,w,h,c);
+r(4,13,3,3,'#2a2440');r(9,13,3,3,'#2a2440');r(3,8,10,6,p.c);r(3,8,10,1,p.t||p.c);
+r(2,2,12,7,p.h);r(2,3,2,6,p.h);r(12,3,2,6,p.h);
+if(p.h2){r(2,8,2,3,p.h2);r(12,8,2,3,p.h2)}else{r(2,8,2,2,p.h);r(12,8,2,2,p.h)}
+if(d!=1){r(4,4,8,5,'#f1c8a0');const o=d==2?-1:d==3?1:0;r(5+o,6,2,2,p.e);r(9+o,6,2,2,p.e);r(3,1,10,3,p.h)}else r(3,1,10,8,p.h);
+if(p.lily){r(13,10,1,5,'#3a9a4a');r(12,7,3,3,'#fff');r(13,8,1,1,'#e8b84a')}}
+function cat(X,Y){const r=(a,b,w,h,c)=>R(X+a,Y+b,w,h,c),k='#a8794a',s='#4a3320';
+r(1,6,2,6,k);r(1,8,2,1,s);r(1,10,2,1,s);r(2,9,10,5,k);r(4,9,1,5,s);r(7,9,1,5,s);r(10,9,1,5,s);
+r(3,14,2,2,k);r(9,14,2,2,k);r(9,5,6,6,k);r(9,3,2,2,k);r(13,3,2,2,k);r(11,5,2,1,s);r(9,8,1,1,s);r(14,8,1,1,s);
+r(10,7,1,2,'#b6e04a');r(13,7,1,2,'#b6e04a')}
+function obj(o){const a=o.x*T,b=o.y*T,r=(i,j,w,h,c)=>R(a+i,b+j,w,h,c);
+if(o.k=='orq'){r(7,9,2,6,'#3a8a3a');r(5,6,6,4,o.r?'#6a6af0':'#c25be0');r(7,4,2,3,'#f08ad8')}
+if(o.k=='stone'){r(3,6,10,9,'#8a8a9a');x.fillStyle='#222';x.font='8px sans-serif';x.fillText(o.s,5,b+14)}
+if(o.k=='rad'){r(2,7,12,8,'#6a4a2a');r(4,9,5,5,'#2a2a2a');r(10,10,3,3,'#e8b84a');r(11,3,1,4,'#ccc')}
+if(o.k=='chest'){r(2,7,12,8,'#8a5a2a');r(2,10,12,1,'#e8b84a');r(7,10,2,3,'#e8b84a')}
+if(o.k=='let'){r(4,5,8,6,'#f5f0e0');r(4,5,8,1,'#d33')}
+if(o.k=='itm'){r(4,6,8,8,'#e8b84a');r(6,8,4,3,'#fff')}
+if(o.k=='cat')cat(a,b);
+if(o.k=='npc')ch(a,b,PL[o.p],0);
+if(o.k=='you')ch(a,b,PL.YOU,0)}
+function draw(){const m=M[mi];R(0,0,176,224,'#000');
+for(let j=0;j<H;j++)for(let i=0;i<W;i++){const t=g[j][i],a=i*T,b=j*T;R(a,b,T,T,(i+j)%2?m.c[0]:m.c[1]);
+if(t=='#'){if(m.in){R(a,b,T,T,m.c[2]);R(a,b,T,2,'#fff3')}else{R(a,b,T,T,'#1d4a2a');R(a+2,b+1,12,10,'#2f7a3c');R(a+6,b+11,4,5,'#5a3a22')}}
+if(t=='d')R(a,b+4,T,10,'#8a5a2a');
+if(t=='b'){R(a,b,T,T,'#4a2f1c');for(let k=0;k<4;k++)R(a+1+k*4,b+2,3,12,['#c44','#4a8','#48c','#ca4'][k])}
+if(t=='h'){R(a+1,b+2,14,13,'#a8553a');R(a,b,T,5,'#6a2f2f')}
+if(t=='w')R(a,b,T,T,'#2f6fb0');
+if(t=='x')R(a+1,b+3,14,11,'#2a6a34');
+if(t=='D'){R(a,b,T,T,'#e8b84a88');R(a+5,b+4,6,8,'#fff6')}}
+[...objs.filter(o=>!o.gone),{k:'me',x:px,y:py}].sort((a,b)=>a.y-b.y).forEach(o=>o.k=='me'?ch(px*T,py*T,PL.LARA,dir):obj(o))}
+function go(n){mi=n;g=M[n].g.map(r=>r.split(''));objs=M[n].o.map(o=>({...o}));px=5;py=12;dir=1;$('ti').textContent=M[n].n;hud();
+dlg([['',M[n].t]].concat(n?[]:[['',"Use as setas para andar e o botão A para interagir com pessoas, objetos e o Darcy. 🗺 mostra o mapa do mundo e 🎒 o inventário."]]))}
+function hud(){$('oc').textContent='🌸'+f.orq}
+function add(n){if(!has(n))inv.push(n)}
+function dlg(l,fn){q=l.slice();cb=fn||null;nx()}
+function nx(){const d=$('dl');if(!q.length){d.style.display='none';busy=0;const c=cb;cb=null;c&&c();return}
+busy=1;const[w,t]=q.shift();d.style.display='block';d.innerHTML=(w?'<b>'+w+':</b> ':'')+t+' <span style="float:right;color:#e8b84a">▾</span>'}
+$('dl').onclick=nx;
+function step(d){if(busy)return;dir=d;const a=px+DX[d],b=py+DY[d];if(a<0||b<0||a>=W||b>=H)return;const t=g[b][a];
+if(SOL.includes(t)||objs.some(o=>!o.gone&&o.x==a&&o.y==b&&!['orq','stone'].includes(o.k)))return;
+if(t=='D'){if(M[mi].req())go(mi+1);else dlg([['',M[mi].msg]]);return}
+px=a;py=b;const o=objs.find(o=>!o.gone&&o.x==px&&o.y==py&&(o.k=='orq'||o.k=='stone'));
+if(o){o.gone=1;if(o.k=='orq'){f.orq++;add('Orquídea');hud();dlg([['',f.orq==5?"Última orquídea! Mensagem escondida: “Cada flor guarda um pedaço de alguém que se importa com você.” 🏆 Conquista!":"Você coletou uma orquídea! ("+f.orq+"/5)"]])}
+else{f.st++;add('Fragmento '+o.s);dlg([['',"Fragmento de mensagem: "+o.s+" ("+f.st+"/3)"]])}}}
+function act(){if(busy)return;const o=objs.find(o=>!o.gone&&o.x==px+DX[dir]&&o.y==py+DY[dir]&&o.id)||objs.find(o=>!o.gone&&o.id&&Math.abs(o.x-px)+Math.abs(o.y-py)==1);if(o)hd(o)}
+function ov(h){const e=$('ov');e.innerHTML=h;e.style.display='flex';busy=1}
+function cov(){$('ov').style.display='none';busy=0}
+function chs(p,o){const e=$('ov');e.innerHTML='<h3 style="margin:0">'+p+'</h3>';o.forEach(([l,fn])=>{const b=document.createElement('button');b.textContent=l;b.onclick=()=>{cov();fn()};e.appendChild(b)});e.style.display='flex';busy=1}
+function hd(o){const id=o.id,D=dlg;
+if(id=='itm'){o.gone=1;add(o.n);D([['',o.m+" (item: "+o.n+")"]])}
+if(id=='letter'){if(f.l)return;f.l=1;add('Bilhete misterioso');D([['',"Sobre a mesa há uma carta anônima."],['Carta',"“Existe uma aventura esperando por você. Cada pista leva a um destino. Venha me encontrar.”"],['Lara',"Quem mandaria isso…? E esse gatinho tigradinho na janela?"],['Darcy',"Miau! (ele rouba o envelope!)"],['Lara',"Ei! Volta aqui!"]],()=>{o.gone=1;objs.push({k:'cat',x:5,y:1,id:'c0'})})}
+if(id=='c0')D([['Darcy',"Miau. (ele larga o envelope e sai correndo pela porta)"],['Lara',"Esse gato sabe aonde vai…"]],()=>{o.gone=1;f.g0=1});
+if(id=='flo'){if(f.flor)return D([['Florista',"Traga 3 orquídeas e o Darcy abre caminho!"]]);D([['Florista',"Bem-vinda à vila das flores! Colhe 3 orquídeas para mim?"]],()=>chs("Como você responde?",[["Claro, eu ajudo!",()=>{f.flor=1;D([['Florista',"Que gentil! Então vou contar: uma pessoa de olhos verdes costuma visitar um jardim distante, que não aparece no mapa."],['Lara',"Olhos verdes…?"]])}],["Que jardim distante?",()=>{f.flor=1;D([['Florista',"Ah, curiosa! Dizem que uma pessoa de olhos verdes visita um jardim que não aparece no mapa. Mas colha 3 orquídeas antes, o Darcy vai querer."]])}]]))}
+if(id=='kid')D([['Criança',"Vi um gato tigradinho roubando um peixe! Ele parece conhecer cada caminho."]]);
+if(id=='c1'){if(f.orq<3||!f.flor)return D([['Darcy',"Miau. (ele bloqueia a passagem e olha para as flores…)"],['',"Talvez ele queira 3 orquídeas e uma conversa com a florista."]]);D([['Darcy',"Miau! (ele aceita a oferta e abre caminho)"]],()=>{o.gone=1;f.g1=1})}
+if(id=='c2')D([['Darcy',"Miau. (ele guia você por uma passagem secreta entre os arbustos)"]],()=>{g[6][5]='.';o.x=4;o.y=5});
+if(id=='mes'){if(f.d20)return D([['Mestre',"Você tem sorte com dados! Siga em frente."]]);D([['Mestre',"Ninguém passa pela taverna sem rolar um D20! Tire 11 ou mais."]],()=>chs("O que você faz?",[["🎲 Rolar o D20",roll],["Ainda não…",()=>{}]]))}
+if(id=='rad'){if(f.st<3)return D([['',"Um rádio antigo chiando uma transmissão incompreensível. Faltam fragmentos ("+f.st+"/3)."]]);if(f.puz)return D([['Rádio',"“Quem são os quatro?”"]]);puz()}
+if(id=='chest'){if(f.chest)return D([['',"O baú está vazio agora."]]);if(!f.puz||!has('Chave antiga'))return D([['',"Um baú com fechadura antiga. Você precisa da chave e de resolver o enigma do rádio."]]);D([['',"O baú abre! Dentro: um amuleto, uma foto e uma carta selada."],['Carta',"“Algumas histórias não terminam. Elas só mudam de lado. Siga o Darcy até o jardim final.”"]],()=>{f.chest=1;add('Amuleto');add('Foto');add('Carta selada')})}
+if(id=='c3'){f.dar=1;D([['Darcy',"Miau… (ele deita no seu colo e ronrona)"],['',"🐱 Momento secreto com o Darcy! Conquista desbloqueada."]])}
+if(id=='c4')D([['Darcy',"Miau. (ele te olha como quem diz: finalmente)"]]);
+if(id=='you')fin()}
+function roll(){ov('<h1 id="dn" style="font-size:60px">🎲</h1><p>Rolando…</p>');let i=0;const t=setInterval(()=>{const r=1+Math.random()*20|0;$('dn').textContent=r;if(++i>10){clearInterval(t);setTimeout(()=>{cov();if(r>=11){f.d20=1;add('Dado D20');dlg([['',"Você tirou "+r+(r==20?" — CRÍTICO! ":"")+"! Sucesso!"],['Mestre',"O dado é seu. E dizem que um rádio antigo espera no refúgio secreto, ao norte…"]])}else dlg([['',"Você tirou "+r+"… falha! Tente de novo."]])},600)}},70)}
+function puz(){const ord=['☾ QUEM','✦ SÃO OS','◆ QUATRO?'];let n=0;
+const dr=()=>{ov('<h3 style="margin:0">Rádio antigo</h3><p>A transmissão repete: <i>lua… estrela… diamante…</i><br>Organize os fragmentos na ordem correta.</p><div id="pz" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div><p>'+ord.slice(0,n).join(' ')+'</p><button id="px">Fechar</button>');
+[...ord].sort(()=>Math.random()-.5).forEach(s=>{if(ord.indexOf(s)<n)return;const b=document.createElement('button');b.textContent=s;b.onclick=()=>{if(s==ord[n]){n++;if(n==3){f.puz=1;cov();dlg([['Rádio',"“…Quem são os quatro?”"],['',"A transmissão revela uma coordenada. Falta abrir o baú do refúgio!"]])}else dr()}else{n=0;dr()}};$('pz').appendChild(b)});$('px').onclick=cov};dr()}
+function fin(){add('Lírio');dlg([['Você',"Parabéns, aventureira. Você encontrou o destino final."],['Lara',"Era isso que eu estava procurando o tempo todo?"],['Você',"Na verdade, eu só queria um motivo criativo pra te chamar pra cá. KKKKKKK."],['',"Você entrega um lírio para ela. 🌸"],['Você',"Mas já que você chegou até aqui… você topa vir aqui em casa depois da faculdade um dia desses? A gente pode comer alguma coisa, jogar e ficar de boa juntas."]],()=>chs("O que a Lara escolhe?",[["💜 Aceitar a quest",()=>dlg([['Lara',"Aceito! Qual dia?"],['Você',"♥"]],xt)],["📅 Combinar outro momento",()=>dlg([['Lara',"Posso escolher outro dia? Sem perder a aventura?"],['Você',"Claro! A quest fica salva."]],xt)]]))}
+const ach=()=>[[f.orq>=5,'🌸 Todas as orquídeas'],[f.dar,'🐱 Momento com o Darcy'],[f.puz,'📻 Frequência perdida'],[has('Playlist secreta')&&has('Livro de RPG')&&has('Poção de café'),'🎒 Itens secretos']];
+function xt(){if(ach().every(a=>a[0]))dlg([['',"✨ FINAL EXTRA desbloqueado!"],['Você',"Aliás… aquela playlist secreta? Fui eu que montei pra você. É pra ouvir enquanto a gente joga."],['Lara',"Você pensou em tudo, né?"]],end);else end()}
+function end(){ov('<h1>O Caminho Até Você</h1><p><b>Darcy:</b> “Missão concluída. Recompensa: atenção humana extra.”</p><p style="font-size:30px;margin:0">🌸</p><p>Conquistas: '+ach().filter(a=>a[0]).length+'/4<br>Fim. Obrigada por jogar, Lara. ♥</p><button onclick="location.reload()">Jogar de novo</button>')}
+$('bag').onclick=()=>{if(busy&&$('ov').style.display!='flex')return;ov('<h3 style="margin:0">🎒 Inventário</h3><p>'+(inv.length?inv.join('<br>'):'Vazio por enquanto…')+'</p><button onclick="cov()">Fechar</button>')};
+$('mp').onclick=()=>{if(busy&&$('ov').style.display!='flex')return;ov('<h3 style="margin:0">🗺 Mapa do mundo</h3><p style="text-align:left">'+M.map((m,i)=>(i==mi?'📍 ':i<mi?'✔ ':'• ')+(i+1)+'. '+m.n).join('<br>')+'</p><p style="text-align:left;margin:0"><b>Conquistas</b><br>'+ach().map(a=>(a[0]?'✔ ':'▫ ')+a[1]).join('<br>')+'</p><button onclick="cov()">Fechar</button>')};
+$('A').onclick=()=>{if(busy&&$('dl').style.display=='block')nx();else act()};
+let iv;document.querySelectorAll('#pad button').forEach(b=>{const d=+b.dataset.d;b.onpointerdown=e=>{e.preventDefault();step(d);clearInterval(iv);iv=setInterval(()=>step(d),160)};['pointerup','pointerleave','pointercancel'].forEach(v=>b['on'+v]=()=>clearInterval(iv))});
+document.addEventListener('keydown',e=>{const k={ArrowDown:0,ArrowUp:1,ArrowLeft:2,ArrowRight:3}[e.key];if(k!=null)step(k);if(e.key=='Enter'||e.key==' ')$('A').onclick()});
+document.oncontextmenu=e=>e.preventDefault();
+(function loop(){if(g)draw();requestAnimationFrame(loop)})();
+ov('<h1>O CAMINHO<br>ATÉ VOCÊ</h1><canvas id="tc" width="64" height="20" style="width:192px;image-rendering:pixelated"></canvas><p style="margin:0"><i>Uma aventura, mil pistas, um só destino.</i></p><p style="opacity:.85;font-size:12px;margin:0">Gênero: RPG de aventura + narrativa<br>Estilo: pixel art (16/32 bits) • Plataforma: navegador<br>Duração: ~15 a 25 min</p><p style="margin:0"><i>Talvez seja só uma aventura… Mas e se for mais do que isso?</i></p><button id="st">▶ Começar</button>');
+(()=>{const s=x;x=$('tc').getContext('2d');ch(2,2,PL.LARA,0);ch(24,2,PL.YOU,0);cat(46,2);x=s})();
+$('st').onclick=()=>{cov();go(0)};
+</script></body></html>
